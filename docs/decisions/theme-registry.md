@@ -4,4 +4,4 @@
 
 | ID | Title | Current Phase | Status |
 |--------|----------------------------------------------|--------------------------|--------------|
-| TH-001 | AIオーケストレーション可視化ダッシュボード | value-definition | completed |
+| TH-001 | AIオーケストレーション可視化ダッシュボード | story-definition | completed |

@@ -1,29 +1,27 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, FileText } from "lucide-react";
-import { getAllThemes, getThemeById } from "@/lib/data/themes";
+import { getThemeById } from "@/lib/data/themes";
+import { createStaticSupabaseClient } from "@/lib/supabase/static";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/status-badge";
 import { PhaseProgressMap } from "@/components/phase-progress-map";
 import { TimelineTab } from "@/components/timeline-tab";
+import { ReviewActions } from "@/components/review-actions";
 
 interface ThemeDetailPageProps {
   params: Promise<{ themeId: string }>;
 }
 
-export const dynamicParams = false;
+export const revalidate = 60;
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
-  const results = await getAllThemes();
-  return results
-    .filter((r) => r.type === "theme")
-    .map((r) => {
-      if (r.type === "theme") {
-        return { themeId: r.data.theme_id };
-      }
-      return { themeId: "" };
-    })
-    .filter((p) => p.themeId !== "");
+  const supabase = createStaticSupabaseClient();
+  if (!supabase) return [];
+  const { data } = await supabase.from("themes").select("theme_id");
+  return (data || []).map((t) => ({ themeId: t.theme_id }));
 }
 
 export default async function ThemeDetailPage({
@@ -36,12 +34,20 @@ export default async function ThemeDetailPage({
     notFound();
   }
 
+  // Check authentication for review actions
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   // Get the source from the latest decision
   const latestDecision = theme.decisions.length > 0
     ? theme.decisions.reduce((latest, d) =>
         d.updated_at > latest.updated_at ? d : latest,
       )
     : null;
+
+  const isAwaitingReview = theme.current_status === "awaiting-review";
 
   return (
     <main className="flex-1 p-6 max-w-5xl mx-auto w-full">
@@ -70,6 +76,13 @@ export default async function ThemeDetailPage({
           </div>
         )}
       </div>
+
+      {/* Review Actions (only for awaiting-review themes with authenticated users) */}
+      {isAwaitingReview && (
+        <div className="mb-8">
+          <ReviewActions themeId={theme.theme_id} isAuthenticated={!!user} />
+        </div>
+      )}
 
       {/* Phase Progress Map */}
       <div className="mb-8 rounded-lg border bg-card p-4">

@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
 
@@ -13,13 +13,7 @@ export async function GET(request: Request) {
       {
         cookies: {
           getAll() {
-            return request.headers
-              .get("cookie")
-              ?.split("; ")
-              .map((c) => {
-                const [name, ...rest] = c.split("=");
-                return { name, value: rest.join("=") };
-              }) ?? [];
+            return request.cookies.getAll();
           },
           setAll(cookiesToSet) {
             cookiesToSet.forEach(({ name, value, options }) =>

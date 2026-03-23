@@ -22,8 +22,8 @@ describe("themes facade (Supabase)", () => {
     mockSelect.mockReturnValue({ eq: mockEq });
   });
 
-  const mockDecisionRows: Omit<ThemeDecision, "created_at" | "updated_at"> &
-    { created_at: string; updated_at: string }[] = [
+  const mockDecisionRows: (Omit<ThemeDecision, "created_at" | "updated_at"> &
+    { created_at: string; updated_at: string })[] = [
     {
       theme_id: "TH-001",
       title: "Theme 1",

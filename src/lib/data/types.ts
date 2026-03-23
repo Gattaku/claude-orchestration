@@ -51,3 +51,15 @@ export interface ParseError {
 export type ThemeOrError =
   | { type: "theme"; data: Theme }
   | { type: "error"; error: ParseError };
+
+export type ReviewAction = 'approved' | 'rejected';
+
+export interface ThemeReview {
+  id: string;
+  theme_id: string;
+  decision_id: string | null;
+  action: ReviewAction;
+  reviewer_email: string;
+  comment: string | null;
+  created_at: string;
+}

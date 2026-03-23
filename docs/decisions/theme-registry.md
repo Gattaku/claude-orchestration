@@ -4,4 +4,5 @@
 
 | ID | Title | Current Phase | Status |
 |--------|----------------------------------------------|--------------------------|--------------|
-| TH-001 | AIオーケストレーション可視化ダッシュボード | technical-design | completed |
+| TH-001 | AIオーケストレーション可視化ダッシュボード | delivery | completed |
+| TH-002 | Supabase統合（v1） | delivery | awaiting-review |

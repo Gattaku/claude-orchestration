@@ -149,7 +149,63 @@ Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
 ## ドキュメント出力
 
 各フェーズ完了時に、以下のドキュメントを `docs/decisions/` に保存する。
-ファイル名: `phase-{番号}-{フェーズ名}-{YYYYMMDD}.md`
+
+### ファイル命名規則
+
+```
+docs/decisions/{theme_id}-{phase略称}-{YYYYMMDD}.md
+```
+
+例: `TH-001-insight-extraction-20260323.md`
+
+### Theme ID の付与
+
+- 形式: `TH-{3桁連番}`（例: TH-001, TH-002）
+- 付与タイミング: Phase 1（インサイト抽出）でテーマを識別した時点
+- 管理: `docs/decisions/theme-registry.md` に全テーマ一覧を記録・更新する
+
+### frontmatter規約
+
+すべてのPhaseドキュメントに以下のfrontmatterを **必ず** 含める。
+
+```yaml
+---
+theme_id: "TH-001"                    # 必須。連番形式
+title: "テーマタイトル"                 # 必須。表示用
+phase: "insight-extraction"            # 必須。下記5値のいずれか
+status: "in-progress"                  # 必須。下記4値のいずれか
+source: "docs/meeting/xxx.md"          # 必須。元の議事録パス
+created_at: "YYYY-MM-DD"              # 必須。テーマ発生日
+updated_at: "YYYY-MM-DD"              # 必須。最終更新日
+next_action: "次のアクション"           # 必須
+awaiting_review: ""                    # 必須。空=確認不要、内容あり=オーナー確認待ち
+participants:                          # 必須
+  - "AIPO"
+tags:                                  # 任意
+  - "mvp"
+---
+```
+
+#### Phase enum（5値）
+
+| 値 | AIPOプロセス |
+|---|---|
+| `insight-extraction` | Phase 1: インサイト抽出 |
+| `value-definition` | Phase 2: 価値定義・ロードマップ整合 |
+| `story-definition` | Phase 3: Story策定 |
+| `design-and-implementation` | Phase 4: 設計・実装 |
+| `delivery` | Phase 5: デリバリー |
+
+#### Status enum（4値）
+
+| 値 | 意味 |
+|---|---|
+| `in-progress` | 進行中 |
+| `awaiting-review` | オーナー確認待ち |
+| `completed` | 完了 |
+| `on-hold` | 保留 |
+
+### 本文テンプレート
 
 ```markdown
 # Phase [番号]: [フェーズ名] — 決定記録

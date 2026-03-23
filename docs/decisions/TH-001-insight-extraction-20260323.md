@@ -1,3 +1,22 @@
+---
+theme_id: "TH-001"
+title: "AIオーケストレーション可視化ダッシュボード"
+phase: "insight-extraction"
+status: "completed"
+source: "docs/meeting/dummy.md"
+created_at: "2026-03-23"
+updated_at: "2026-03-23"
+next_action: "価値定義・ロードマップ整合（Phase 2）へ進む"
+awaiting_review: ""
+participants:
+  - "AIPO"
+  - "AI PM"
+  - "AI PD"
+tags:
+  - "mvp"
+  - "dashboard"
+---
+
 # Phase 1: インサイト抽出 — 決定記録
 
 ## 日付

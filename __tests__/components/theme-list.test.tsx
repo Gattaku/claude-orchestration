@@ -37,6 +37,7 @@ function makeThemeOrError(
           updated_at: updatedAt,
         },
       ],
+      discussion_logs: [],
     },
   };
 }

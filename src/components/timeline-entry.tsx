@@ -1,14 +1,25 @@
+"use client";
+
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/status-badge";
 import { PHASE_DISPLAY_NAMES } from "@/lib/data/constants";
 import type { ThemeDecision } from "@/lib/data/types";
 import { formatShortDate } from "@/lib/utils/date";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 interface TimelineEntryProps {
   decision: ThemeDecision;
 }
 
 export function TimelineEntry({ decision }: TimelineEntryProps) {
+  const [inputExpanded, setInputExpanded] = useState(false);
+
+  const hasInputContent =
+    decision.input_content && decision.input_content.trim() !== "";
+  const hasDecisionsSummary =
+    decision.decisions_summary && decision.decisions_summary.trim() !== "";
+
   return (
     <article
       data-slot="timeline-entry"
@@ -36,6 +47,44 @@ export function TimelineEntry({ decision }: TimelineEntryProps) {
           </Badge>
         ))}
       </div>
+
+      {/* Decisions Summary (highlighted) */}
+      {hasDecisionsSummary && (
+        <div
+          data-slot="decisions-summary"
+          className="mb-3 rounded-md border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-950/30 px-3 py-2"
+        >
+          <p className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-1">
+            決定事項
+          </p>
+          <div className="text-sm text-foreground/90 whitespace-pre-wrap">
+            {decision.decisions_summary}
+          </div>
+        </div>
+      )}
+
+      {/* Input Content (collapsible) */}
+      {hasInputContent && (
+        <div data-slot="input-content" className="mb-3">
+          <button
+            type="button"
+            onClick={() => setInputExpanded(!inputExpanded)}
+            className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {inputExpanded ? (
+              <ChevronDown className="h-3 w-3" />
+            ) : (
+              <ChevronRight className="h-3 w-3" />
+            )}
+            Input内容を表示
+          </button>
+          {inputExpanded && (
+            <div className="mt-2 rounded-md border bg-muted/30 px-3 py-2 text-sm text-foreground/80 whitespace-pre-wrap">
+              {decision.input_content}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Body HTML */}
       {decision.body_html && (

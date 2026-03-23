@@ -27,6 +27,7 @@ function makeTheme(overrides: Partial<Theme> = {}): Theme {
     phases: [
       { phase: "technical-design", status: "in-progress", updated_at: "2026-03-20" },
     ],
+    discussion_logs: [],
     ...overrides,
   };
 }

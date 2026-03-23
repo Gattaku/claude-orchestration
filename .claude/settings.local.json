@@ -11,7 +11,9 @@
       "mcp__context7__resolve-library-id",
       "mcp__context7__query-docs",
       "Skill(update-config)",
-      "Bash(yes)"
+      "Bash(yes)",
+      "Bash(cd:*)",
+      "Bash(echo:*)"
     ]
   }
 }

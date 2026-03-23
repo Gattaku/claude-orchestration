@@ -1,6 +1,7 @@
 import type { Phase, Status } from "./types";
 
 export const VALID_PHASES: readonly Phase[] = [
+  "triage",
   "insight-extraction",
   "value-definition",
   "story-definition",
@@ -17,6 +18,7 @@ export const VALID_STATUSES: readonly Status[] = [
 ] as const;
 
 export const PHASE_DISPLAY_NAMES: Record<Phase, string> = {
+  triage: "トリアージ",
   "insight-extraction": "インサイト抽出",
   "value-definition": "価値定義",
   "story-definition": "Story策定",
@@ -31,6 +33,19 @@ export const STATUS_DISPLAY_NAMES: Record<Status, string> = {
   completed: "完了",
   "on-hold": "保留",
 };
+
+/**
+ * 進行インジケーター（PhaseProgressBar, PhaseProgressMap）に表示するフェーズ。
+ * トリアージはプロセス管理フェーズのため、進行表示には含めない。
+ */
+export const DISPLAY_PHASES: readonly Phase[] = [
+  "insight-extraction",
+  "value-definition",
+  "story-definition",
+  "technical-design",
+  "implementation",
+  "delivery",
+] as const;
 
 export const DECISIONS_DIR = "docs/decisions";
 export const THEME_REGISTRY_FILE = "theme-registry.md";

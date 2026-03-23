@@ -1,4 +1,5 @@
 export type Phase =
+  | "triage"
   | "insight-extraction"
   | "value-definition"
   | "story-definition"

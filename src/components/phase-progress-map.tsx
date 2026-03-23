@@ -1,5 +1,5 @@
 import { Check } from "lucide-react";
-import { VALID_PHASES, PHASE_DISPLAY_NAMES } from "@/lib/data/constants";
+import { DISPLAY_PHASES, PHASE_DISPLAY_NAMES } from "@/lib/data/constants";
 import type { Phase, PhaseInfo } from "@/lib/data/types";
 import { formatShortDate } from "@/lib/utils/date";
 import { cn } from "@/lib/utils";
@@ -33,10 +33,10 @@ export function PhaseProgressMap({ phases, currentPhase }: PhaseProgressMapProps
 
   return (
     <div className="flex items-start gap-0 overflow-x-auto" data-slot="phase-progress-map">
-      {VALID_PHASES.map((phase, index) => {
+      {DISPLAY_PHASES.map((phase, index) => {
         const nodeStatus = getPhaseNodeStatus(phase, phaseInfoMap, currentPhase);
         const info = phaseInfoMap.get(phase);
-        const isLast = index === VALID_PHASES.length - 1;
+        const isLast = index === DISPLAY_PHASES.length - 1;
 
         return (
           <div key={phase} className="flex items-start" data-status={nodeStatus}>

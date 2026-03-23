@@ -1,4 +1,4 @@
-import { VALID_PHASES, PHASE_DISPLAY_NAMES } from "@/lib/data/constants";
+import { DISPLAY_PHASES, PHASE_DISPLAY_NAMES } from "@/lib/data/constants";
 import type { Phase, PhaseInfo } from "@/lib/data/types";
 
 interface PhaseProgressBarProps {
@@ -12,8 +12,8 @@ function getDotClass(
   phaseMap: Map<Phase, PhaseInfo>,
 ): string {
   const info = phaseMap.get(phase);
-  const phaseIndex = VALID_PHASES.indexOf(phase);
-  const currentIndex = VALID_PHASES.indexOf(currentPhase);
+  const phaseIndex = DISPLAY_PHASES.indexOf(phase);
+  const currentIndex = DISPLAY_PHASES.indexOf(currentPhase);
 
   // If this phase has info and is completed, it's green
   if (info && info.status === "completed") {
@@ -43,7 +43,7 @@ export function PhaseProgressBar({ phases, currentPhase }: PhaseProgressBarProps
 
   return (
     <div className="flex items-center gap-1.5">
-      {VALID_PHASES.map((phase) => (
+      {DISPLAY_PHASES.map((phase) => (
         <div
           key={phase}
           data-testid="phase-dot"

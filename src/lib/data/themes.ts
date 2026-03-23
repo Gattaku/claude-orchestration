@@ -1,6 +1,6 @@
 import { createStaticSupabaseClient } from "@/lib/supabase/static";
 import { buildPhaseInfoList, deriveCurrentPhase } from "@/lib/utils/phase";
-import type { Theme, ThemeDecision, ThemeOrError } from "@/lib/data/types";
+import type { Theme, ThemeDecision, ThemeOrError, DiscussionLog } from "@/lib/data/types";
 
 /**
  * Convert ISO 8601 timestamp to YYYY-MM-DD date string.
@@ -26,6 +26,23 @@ function toThemeDecision(row: Record<string, unknown>): ThemeDecision {
     participants: row.participants as string[],
     tags: row.tags as string[] | undefined,
     body_html: row.body_html as string,
+    input_content: (row.input_content as string | null) ?? null,
+    decisions_summary: (row.decisions_summary as string | null) ?? null,
+  };
+}
+
+/**
+ * Convert a raw Supabase discussion_logs row into a DiscussionLog.
+ */
+function toDiscussionLog(row: Record<string, unknown>): DiscussionLog {
+  return {
+    id: row.id as string,
+    theme_id: row.theme_id as string,
+    decision_id: (row.decision_id as string | null) ?? null,
+    agent_role: row.agent_role as DiscussionLog["agent_role"],
+    direction: row.direction as DiscussionLog["direction"],
+    message: row.message as string,
+    created_at: row.created_at as string,
   };
 }
 
@@ -33,7 +50,11 @@ function toThemeDecision(row: Record<string, unknown>): ThemeDecision {
  * Build a Theme object from a theme_id and its decisions.
  * Returns null if there are no decisions (cannot derive phase).
  */
-function buildTheme(themeId: string, decisions: ThemeDecision[]): Theme | null {
+function buildTheme(
+  themeId: string,
+  decisions: ThemeDecision[],
+  discussionLogs: DiscussionLog[] = [],
+): Theme | null {
   if (decisions.length === 0) return null;
 
   const currentPhase = deriveCurrentPhase(decisions);
@@ -47,6 +68,7 @@ function buildTheme(themeId: string, decisions: ThemeDecision[]): Theme | null {
     current_status: currentStatus,
     decisions,
     phases: buildPhaseInfoList(decisions),
+    discussion_logs: discussionLogs,
   };
 }
 
@@ -105,8 +127,17 @@ export async function getAllThemes(): Promise<ThemeOrError[]> {
       continue;
     }
 
+    // Fetch discussion logs for this theme (ordered by created_at ascending)
+    const { data: logRows } = await supabase
+      .from("discussion_logs")
+      .select("*")
+      .eq("theme_id", row.theme_id)
+      .order("created_at", { ascending: true })
+      .limit(100);
+
     const decisions = (decisionRows || []).map(toThemeDecision);
-    const theme = buildTheme(row.theme_id, decisions);
+    const logs = (logRows || []).map(toDiscussionLog);
+    const theme = buildTheme(row.theme_id, decisions, logs);
 
     if (theme) {
       results.push({ type: "theme", data: theme });
@@ -125,6 +156,23 @@ export async function getThemeById(themeId: string): Promise<Theme | null> {
     return found.data;
   }
   return null;
+}
+
+export async function getDiscussionLogsByThemeId(
+  themeId: string,
+): Promise<DiscussionLog[]> {
+  const supabase = createStaticSupabaseClient();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("discussion_logs")
+    .select("*")
+    .eq("theme_id", themeId)
+    .order("created_at", { ascending: true })
+    .limit(100);
+
+  if (error) return [];
+  return (data || []).map(toDiscussionLog);
 }
 
 export async function getAwaitingReviewThemes(): Promise<Theme[]> {

@@ -36,6 +36,8 @@ describe("themes facade (Supabase)", () => {
       awaiting_review: "",
       participants: ["AIPO"],
       body_html: "<p>content 1</p>",
+      input_content: null,
+      decisions_summary: null,
     },
     {
       theme_id: "TH-001",
@@ -49,6 +51,8 @@ describe("themes facade (Supabase)", () => {
       awaiting_review: "",
       participants: ["AIPO", "AI PM"],
       body_html: "<p>content 2</p>",
+      input_content: "Some input content",
+      decisions_summary: "Decided to go with option A",
     },
     {
       theme_id: "TH-002",
@@ -62,6 +66,8 @@ describe("themes facade (Supabase)", () => {
       awaiting_review: "AI PM",
       participants: ["AIPO"],
       body_html: "<p>content 3</p>",
+      input_content: null,
+      decisions_summary: null,
     },
   ];
 
@@ -85,6 +91,20 @@ describe("themes facade (Supabase)", () => {
             eq: (_col: string, themeId: string) => ({
               data: decisionsMap[themeId] || [],
               error: null,
+            }),
+          }),
+        };
+      }
+      if (table === "discussion_logs") {
+        return {
+          select: () => ({
+            eq: (_col: string, _themeId: string) => ({
+              order: () => ({
+                limit: () => ({
+                  data: [],
+                  error: null,
+                }),
+              }),
             }),
           }),
         };
@@ -119,6 +139,7 @@ describe("themes facade (Supabase)", () => {
       expect(theme1.data.current_status).toBe("in-progress");
       expect(theme1.data.decisions).toHaveLength(2);
       expect(theme1.data.phases).toHaveLength(2);
+      expect(theme1.data.discussion_logs).toHaveLength(0);
       // Verify date conversion to YYYY-MM-DD
       expect(theme1.data.decisions[0].created_at).toBe("2026-03-18");
       expect(theme1.data.decisions[0].updated_at).toBe("2026-03-20");

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { Phase, Status, Theme, ThemeDecision, PhaseInfo } from "@/lib/data/types";
+import type { Phase, Status, Theme, ThemeDecision, PhaseInfo, AgentRole, MessageDirection, DiscussionLog } from "@/lib/data/types";
 
 describe("Type definitions", () => {
   it("Phase type accepts valid values", () => {
@@ -58,8 +58,34 @@ describe("Type definitions", () => {
       current_status: "in-progress",
       decisions: [],
       phases: [],
+      discussion_logs: [],
     };
     expect(theme.theme_id).toBe("T-001");
     expect(theme.decisions).toEqual([]);
+    expect(theme.discussion_logs).toEqual([]);
+  });
+
+  it("AgentRole type accepts valid values", () => {
+    const roles: AgentRole[] = ["AIPO", "AI PM", "AI PD", "AI Dev"];
+    expect(roles).toHaveLength(4);
+  });
+
+  it("MessageDirection type accepts valid values", () => {
+    const directions: MessageDirection[] = ["request", "response"];
+    expect(directions).toHaveLength(2);
+  });
+
+  it("DiscussionLog interface has required fields", () => {
+    const log: DiscussionLog = {
+      id: "log-1",
+      theme_id: "T-001",
+      decision_id: null,
+      agent_role: "AIPO",
+      direction: "request",
+      message: "Test message",
+      created_at: "2026-01-01T00:00:00Z",
+    };
+    expect(log.agent_role).toBe("AIPO");
+    expect(log.direction).toBe("request");
   });
 });

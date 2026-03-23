@@ -26,6 +26,21 @@ export interface ThemeDecision {
   participants: string[];
   tags?: string[];
   body_html: string;
+  input_content?: string | null;
+  decisions_summary?: string | null;
+}
+
+export type AgentRole = 'AIPO' | 'AI PM' | 'AI PD' | 'AI Dev';
+export type MessageDirection = 'request' | 'response';
+
+export interface DiscussionLog {
+  id: string;
+  theme_id: string;
+  decision_id: string | null;
+  agent_role: AgentRole;
+  direction: MessageDirection;
+  message: string;
+  created_at: string;
 }
 
 export interface PhaseInfo {
@@ -41,6 +56,7 @@ export interface Theme {
   current_status: Status;
   decisions: ThemeDecision[];
   phases: PhaseInfo[];
+  discussion_logs: DiscussionLog[];
 }
 
 export interface ParseError {

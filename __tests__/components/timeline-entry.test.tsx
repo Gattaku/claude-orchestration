@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { TimelineEntry } from "@/components/timeline-entry";
 import type { ThemeDecision } from "@/lib/data/types";
 
@@ -15,6 +16,8 @@ const mockDecision: ThemeDecision = {
   awaiting_review: "レビュー待ち",
   participants: ["AIPO", "AI PM"],
   body_html: "<p>テスト本文</p>",
+  input_content: null,
+  decisions_summary: null,
 };
 
 describe("TimelineEntry", () => {
@@ -46,5 +49,56 @@ describe("TimelineEntry", () => {
     const { container } = render(<TimelineEntry decision={mockDecision} />);
     const entry = container.querySelector("[data-slot='timeline-entry']");
     expect(entry?.textContent).toContain("2026/03/20");
+  });
+
+  it("shows decisions summary when present", () => {
+    const decisionWithSummary: ThemeDecision = {
+      ...mockDecision,
+      decisions_summary: "案Bを採用した",
+    };
+    const { container } = render(
+      <TimelineEntry decision={decisionWithSummary} />,
+    );
+    const summary = container.querySelector(
+      "[data-slot='decisions-summary']",
+    );
+    expect(summary).toBeDefined();
+    expect(summary?.textContent).toContain("案Bを採用した");
+  });
+
+  it("does not show decisions summary when not present", () => {
+    const { container } = render(<TimelineEntry decision={mockDecision} />);
+    const summary = container.querySelector(
+      "[data-slot='decisions-summary']",
+    );
+    expect(summary).toBeNull();
+  });
+
+  it("shows input content toggle when input_content is present", () => {
+    const decisionWithInput: ThemeDecision = {
+      ...mockDecision,
+      input_content: "議事録の内容がここに入る",
+    };
+    render(<TimelineEntry decision={decisionWithInput} />);
+    expect(screen.getByText("Input内容を表示")).toBeDefined();
+  });
+
+  it("expands input content on click", async () => {
+    const user = userEvent.setup();
+    const decisionWithInput: ThemeDecision = {
+      ...mockDecision,
+      input_content: "議事録の内容がここに入る",
+    };
+    render(<TimelineEntry decision={decisionWithInput} />);
+    await user.click(screen.getByText("Input内容を表示"));
+    expect(screen.getByText("議事録の内容がここに入る")).toBeDefined();
+  });
+
+  it("does not show input content toggle when input_content is null", () => {
+    const { container } = render(<TimelineEntry decision={mockDecision} />);
+    const inputSection = container.querySelector(
+      "[data-slot='input-content']",
+    );
+    expect(inputSection).toBeNull();
   });
 });

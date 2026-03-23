@@ -95,8 +95,11 @@ export default async function ThemeDetailPage({
         />
       </div>
 
-      {/* Timeline / Decision Tabs */}
-      <TimelineTab decisions={theme.decisions} />
+      {/* Timeline / Discussion Logs / Decision Tabs */}
+      <TimelineTab
+        decisions={theme.decisions}
+        discussionLogs={theme.discussion_logs}
+      />
     </main>
   );
 }

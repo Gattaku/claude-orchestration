@@ -103,7 +103,7 @@ Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
 
 ### コミットタイミングの原則
 
-- **必須コミット**: 各Phase完了時（Phase 1〜5 の計5回）
+- **必須コミット**: 各Phase完了時（Phase 1〜6 の計6回）
 - **任意コミット**: Phase内で大きな中間成果物が出た場合（AI Devの実装途中など）
 - **禁止**: `main` ブランチへの直接コミット（フィーチャーブランチのみ）
 
@@ -131,15 +131,24 @@ Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
 4. **判断**: Storyの優先順位を決定し、判断理由を記録する
 5. **コミット**: 決定記録を保存し、Phase完了コミットを実行する
 
-### Phase 4: 設計・実装
-1. AI PDにUI/UXデザインを依頼する
-2. AI Devに技術設計・実装を依頼する
-3. AI Dev間のコードレビューを調整する
-4. 進捗を管理し、ブロッカーをAIPOの判断で解消する
+### Phase 4: 技術設計
+1. AI Devに技術スタックの選定を依頼する（Frontend、バックエンド、スタイル、DB、認証、デプロイ先）
+2. AI PDにUI/UXデザインの技術要件を確認する（デザインシステム、コンポーネントライブラリの選定等）
+3. AI PM・AI PD・AI Devで技術スタックの妥当性を議論する
+4. デプロイ先（例: Vercel, AWS, Cloudflare Pages等）を選定し、CI/CDパイプラインの方針を決定する
+5. プロジェクト構成、ディレクトリ構造、開発環境のセットアップ方針を決定する
+6. **判断**: 技術スタック・デプロイ先・アーキテクチャを決定し、判断理由を記録する
+7. **コミット**: 決定記録を保存し、Phase完了コミットを実行する
+
+### Phase 5: 実装
+1. AI Devに技術設計に基づいた実装を依頼する
+2. AI Dev間のコードレビューを調整する
+3. 進捗を管理し、ブロッカーをAIPOの判断で解消する
+4. AI PDにUI実装のレビューを依頼する
 5. **判断**: 技術的なトレードオフはAI Devの議論を踏まえてAIPOが裁定し、理由を記録する
 6. **コミット**: 決定記録・実装コードを含め、Phase完了コミットを実行する
 
-### Phase 5: デリバリー
+### Phase 6: デリバリー
 1. AI Devからの成果物を確認する
 2. Storyの受け入れ条件を検証する
 3. **判断**: デプロイ可否を決定し、判断理由を記録する
@@ -172,7 +181,7 @@ docs/decisions/{theme_id}-{phase略称}-{YYYYMMDD}.md
 ---
 theme_id: "TH-001"                    # 必須。連番形式
 title: "テーマタイトル"                 # 必須。表示用
-phase: "insight-extraction"            # 必須。下記5値のいずれか
+phase: "insight-extraction"            # 必須。下記6値のいずれか
 status: "in-progress"                  # 必須。下記4値のいずれか
 source: "docs/meeting/xxx.md"          # 必須。元の議事録パス
 created_at: "YYYY-MM-DD"              # 必須。テーマ発生日
@@ -186,15 +195,16 @@ tags:                                  # 任意
 ---
 ```
 
-#### Phase enum（5値）
+#### Phase enum（6値）
 
 | 値 | AIPOプロセス |
 |---|---|
 | `insight-extraction` | Phase 1: インサイト抽出 |
 | `value-definition` | Phase 2: 価値定義・ロードマップ整合 |
 | `story-definition` | Phase 3: Story策定 |
-| `design-and-implementation` | Phase 4: 設計・実装 |
-| `delivery` | Phase 5: デリバリー |
+| `technical-design` | Phase 4: 技術設計 |
+| `implementation` | Phase 5: 実装 |
+| `delivery` | Phase 6: デリバリー |
 
 #### Status enum（4値）
 

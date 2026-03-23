@@ -4,4 +4,4 @@
 
 | ID | Title | Current Phase | Status |
 |--------|----------------------------------------------|--------------------------|--------------|
-| TH-001 | AIオーケストレーション可視化ダッシュボード | story-definition | completed |
+| TH-001 | AIオーケストレーション可視化ダッシュボード | technical-design | completed |

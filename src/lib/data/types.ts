@@ -41,3 +41,12 @@ export interface Theme {
   decisions: ThemeDecision[];
   phases: PhaseInfo[];
 }
+
+export interface ParseError {
+  file_path: string;
+  error_message: string;
+}
+
+export type ThemeOrError =
+  | { type: "theme"; data: Theme }
+  | { type: "error"; error: ParseError };

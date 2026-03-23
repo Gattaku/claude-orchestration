@@ -8,7 +8,7 @@
  *   npx tsx -r tsconfig-paths/register scripts/migrate-md-to-supabase.ts
  *
  * 前提:
- *   - .env.local に NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY が設定済み
+ *   - .env.local に NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY が設定済み
  *   - supabase/migrations が適用済み
  */
 
@@ -21,19 +21,21 @@ import { parseMarkdownFiles } from "@/lib/data/parser";
 // 環境変数チェック
 // ---------------------------------------------------------------------------
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   console.error(
-    "Error: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set in .env.local",
+    "Error: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in .env.local\n" +
+      "Service Role Key is required to bypass RLS for data migration.",
   );
   process.exit(1);
 }
 
 // ---------------------------------------------------------------------------
-// Supabaseクライアント（service_roleではなくanon keyで実行。RLSに注意）
+// Supabaseクライアント（Service Role Keyを使用してRLSをバイパス）
+// ⚠️ Service Role Keyはサーバーサイドのスクリプトでのみ使用すること
 // ---------------------------------------------------------------------------
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 // ---------------------------------------------------------------------------
 // メイン処理

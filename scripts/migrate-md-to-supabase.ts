@@ -58,7 +58,7 @@ async function main() {
       if (r.type !== "theme") throw new Error("unreachable");
       return r.data;
     })
-    .filter((t) => t.theme_id.startsWith("TH-001"));
+    .filter((t) => /^TH-\d{3}$/.test(t.theme_id));
 
   const errors = results.filter((r) => r.type === "error");
 

@@ -58,7 +58,7 @@ async function main() {
       if (r.type !== "theme") throw new Error("unreachable");
       return r.data;
     })
-    .filter((t) => t.theme_id.startsWith("TH-001"));
+    ; // 全テーマを対象にする（TH-001限定フィルタを撤廃）
 
   const errors = results.filter((r) => r.type === "error");
 

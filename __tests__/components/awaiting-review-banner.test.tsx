@@ -11,6 +11,7 @@ function makeTheme(overrides: Partial<Theme> = {}): Theme {
     current_status: "awaiting-review",
     decisions: [],
     phases: [],
+    discussion_logs: [],
     ...overrides,
   };
 }

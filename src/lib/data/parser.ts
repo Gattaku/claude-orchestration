@@ -180,6 +180,7 @@ export async function parseMarkdownFiles(
       current_status: latestDecision.status,
       decisions,
       phases,
+      discussion_logs: [],
     };
 
     themes.push({ type: "theme", data: theme });

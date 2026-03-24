@@ -1,7 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createStaticSupabaseClient } from "@/lib/supabase/static";
 import { buildPhaseInfoList, deriveCurrentPhase } from "@/lib/utils/phase";
-import type { Theme, ThemeDecision, ThemeOrError, DiscussionLog, AgentRole, MessageDirection } from "@/lib/data/types";
+import type { Theme, ThemeDecision, ThemeOrError, DiscussionLog, AgentRole, MessageDirection, Phase, Status } from "@/lib/data/types";
 
 /**
  * Convert ISO 8601 timestamp to YYYY-MM-DD date string.
@@ -335,6 +335,119 @@ export async function insertDiscussionLogBatch(
   }
 
   return (data || []).map(toDiscussionLog);
+}
+
+// ---------------------------------------------------------------------------
+// UPDATE: テーマ進捗の更新
+// ---------------------------------------------------------------------------
+
+/**
+ * Input for updating theme progress.
+ */
+export interface UpdateThemeProgressInput {
+  theme_id: string;
+  phase: Phase;
+  status: Status;
+  next_action?: string;
+}
+
+const VALID_PHASES: Phase[] = [
+  "triage",
+  "insight-extraction",
+  "value-definition",
+  "story-definition",
+  "technical-design",
+  "implementation",
+  "delivery",
+];
+
+const VALID_STATUSES: Status[] = [
+  "in-progress",
+  "awaiting-review",
+  "completed",
+  "on-hold",
+];
+
+/**
+ * Validate the input for updateThemeProgress.
+ * Returns an error message string if invalid, or null if valid.
+ */
+export function validateThemeProgressInput(
+  input: UpdateThemeProgressInput,
+): string | null {
+  if (!input.theme_id || typeof input.theme_id !== "string") {
+    return "theme_id is required and must be a non-empty string";
+  }
+  if (!/^TH-\d{3}$/.test(input.theme_id)) {
+    return "theme_id must match pattern TH-NNN (e.g. TH-001)";
+  }
+
+  if (!VALID_PHASES.includes(input.phase)) {
+    return `phase must be one of: ${VALID_PHASES.join(", ")}`;
+  }
+
+  if (!VALID_STATUSES.includes(input.status)) {
+    return `status must be one of: ${VALID_STATUSES.join(", ")}`;
+  }
+
+  if (input.next_action !== undefined) {
+    if (typeof input.next_action !== "string" || input.next_action === "") {
+      return "next_action must be a non-empty string if provided";
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Update theme progress in the themes table.
+ * Optionally updates the next_action in the corresponding theme_decisions row.
+ *
+ * Uses service role key to bypass RLS (agents run in CLI context).
+ */
+export async function updateThemeProgress(
+  input: UpdateThemeProgressInput,
+): Promise<void> {
+  const validationError = validateThemeProgressInput(input);
+  if (validationError) {
+    throw new Error(`Validation failed: ${validationError}`);
+  }
+
+  const supabase = createServiceRoleClient();
+  if (!supabase) {
+    throw new Error(
+      "Supabase environment variables are not configured " +
+        "(NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)",
+    );
+  }
+
+  // Update themes table
+  const { error: themesError } = await supabase
+    .from("themes")
+    .update({
+      current_phase: input.phase,
+      current_status: input.status,
+    })
+    .eq("theme_id", input.theme_id);
+
+  if (themesError) {
+    throw new Error(`Failed to update theme progress: ${themesError.message}`);
+  }
+
+  // Optionally update theme_decisions next_action
+  if (input.next_action) {
+    const { error: decisionError } = await supabase
+      .from("theme_decisions")
+      .update({ next_action: input.next_action })
+      .eq("theme_id", input.theme_id)
+      .eq("phase", input.phase);
+
+    if (decisionError) {
+      throw new Error(
+        `Failed to update theme_decisions next_action: ${decisionError.message}`,
+      );
+    }
+  }
 }
 
 export async function getAwaitingReviewThemes(): Promise<Theme[]> {

@@ -12,7 +12,9 @@
  *   - supabase/migrations が適用済み
  */
 
-import "dotenv/config";
+import dotenv from "dotenv";
+dotenv.config({ path: ".env.local" });
+dotenv.config(); // fallback to .env
 import path from "path";
 import { createClient } from "@supabase/supabase-js";
 import { parseMarkdownFiles } from "@/lib/data/parser";

@@ -3,7 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { AwaitingReviewBanner } from "@/components/awaiting-review-banner";
 import { ThemeList } from "@/components/theme-list";
 
-export const revalidate = 60;
+export const revalidate = 10;
 
 export default async function OverviewPage() {
   const [allThemes, awaitingThemes, supabase] = await Promise.all([

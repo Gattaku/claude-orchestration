@@ -10,3 +10,4 @@
 | TH-005 | リアルタイム進捗Push基盤 | delivery | awaiting-review |
 | TH-006 | テーマ詳細ページUX改善（折りたたみ+戻るボタン） | delivery | awaiting-review |
 | TH-007 | 議論ログ自動Push（PostToolUse hook） | implementation | in-progress |
+| TH-008 | 詳細展開パネルの閉じるボタンUX改善 | triage | in-progress |

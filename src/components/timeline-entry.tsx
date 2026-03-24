@@ -13,8 +13,11 @@ interface TimelineEntryProps {
 }
 
 export function TimelineEntry({ decision }: TimelineEntryProps) {
+  const [bodyExpanded, setBodyExpanded] = useState(false);
   const [inputExpanded, setInputExpanded] = useState(false);
 
+  const hasBodyHtml =
+    decision.body_html && decision.body_html.trim() !== "";
   const hasInputContent =
     decision.input_content && decision.input_content.trim() !== "";
   const hasDecisionsSummary =
@@ -63,36 +66,54 @@ export function TimelineEntry({ decision }: TimelineEntryProps) {
         </div>
       )}
 
-      {/* Input Content (collapsible) */}
-      {hasInputContent && (
-        <div data-slot="input-content" className="mb-3">
+      {/* Body HTML (collapsible) */}
+      {hasBodyHtml && (
+        <div className="mb-3">
           <button
             type="button"
-            onClick={() => setInputExpanded(!inputExpanded)}
+            onClick={() => setBodyExpanded(!bodyExpanded)}
             className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
-            {inputExpanded ? (
+            {bodyExpanded ? (
               <ChevronDown className="h-3 w-3" />
             ) : (
               <ChevronRight className="h-3 w-3" />
             )}
-            Input内容を表示
+            {bodyExpanded ? "閉じる" : "詳細を見る"}
           </button>
-          {inputExpanded && (
-            <div className="mt-2 rounded-md border bg-muted/30 px-3 py-2 text-sm text-foreground/80 whitespace-pre-wrap">
-              {decision.input_content}
-            </div>
+          {bodyExpanded && (
+            <>
+              <div
+                data-slot="timeline-body"
+                className="mt-2 prose prose-sm max-w-none text-sm text-foreground/90"
+                dangerouslySetInnerHTML={{ __html: decision.body_html }}
+              />
+
+              {/* Input Content (collapsible, inside body) */}
+              {hasInputContent && (
+                <div data-slot="input-content" className="mt-3">
+                  <button
+                    type="button"
+                    onClick={() => setInputExpanded(!inputExpanded)}
+                    className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {inputExpanded ? (
+                      <ChevronDown className="h-3 w-3" />
+                    ) : (
+                      <ChevronRight className="h-3 w-3" />
+                    )}
+                    Input内容を表示
+                  </button>
+                  {inputExpanded && (
+                    <div className="mt-2 rounded-md border bg-muted/30 px-3 py-2 text-sm text-foreground/80 whitespace-pre-wrap">
+                      {decision.input_content}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
-      )}
-
-      {/* Body HTML */}
-      {decision.body_html && (
-        <div
-          data-slot="timeline-body"
-          className="prose prose-sm max-w-none text-sm text-foreground/90"
-          dangerouslySetInnerHTML={{ __html: decision.body_html }}
-        />
       )}
 
       {/* Source reference */}

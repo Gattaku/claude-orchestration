@@ -39,10 +39,65 @@ describe("TimelineEntry", () => {
     expect(entry?.textContent).toContain("AI PM");
   });
 
-  it("renders body_html content", () => {
+  it("does not render body_html by default (collapsed)", () => {
     const { container } = render(<TimelineEntry decision={mockDecision} />);
     const bodyEl = container.querySelector("[data-slot='timeline-body']");
+    expect(bodyEl).toBeNull();
+  });
+
+  it("shows body toggle button when body_html is present", () => {
+    render(<TimelineEntry decision={mockDecision} />);
+    expect(screen.getByText("詳細を見る")).toBeDefined();
+  });
+
+  it("expands body_html on click", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<TimelineEntry decision={mockDecision} />);
+    await user.click(screen.getByText("詳細を見る"));
+    const bodyEl = container.querySelector("[data-slot='timeline-body']");
+    expect(bodyEl).not.toBeNull();
     expect(bodyEl?.innerHTML).toContain("<p>テスト本文</p>");
+    // Button text should change to "閉じる"
+    expect(screen.getByText("閉じる")).toBeDefined();
+  });
+
+  it("collapses body_html on second click", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<TimelineEntry decision={mockDecision} />);
+    // Expand
+    await user.click(screen.getByText("詳細を見る"));
+    expect(container.querySelector("[data-slot='timeline-body']")).not.toBeNull();
+    // Collapse
+    await user.click(screen.getByText("閉じる"));
+    expect(container.querySelector("[data-slot='timeline-body']")).toBeNull();
+    // Button text should revert
+    expect(screen.getByText("詳細を見る")).toBeDefined();
+  });
+
+  it("does not show body toggle button when body_html is absent", () => {
+    const decisionNoBody: ThemeDecision = {
+      ...mockDecision,
+      body_html: null,
+    };
+    render(<TimelineEntry decision={decisionNoBody} />);
+    expect(screen.queryByText("詳細を見る")).toBeNull();
+  });
+
+  it("shows input_content toggle inside expanded body", async () => {
+    const user = userEvent.setup();
+    const decisionWithInput: ThemeDecision = {
+      ...mockDecision,
+      input_content: "議事録の内容がここに入る",
+    };
+    const { container } = render(
+      <TimelineEntry decision={decisionWithInput} />,
+    );
+    // input_content toggle should not be visible when body is collapsed
+    expect(screen.queryByText("Input内容を表示")).toBeNull();
+    // Expand body
+    await user.click(screen.getByText("詳細を見る"));
+    // Now input_content toggle should be visible
+    expect(screen.getByText("Input内容を表示")).toBeDefined();
   });
 
   it("renders the date", () => {
@@ -74,22 +129,16 @@ describe("TimelineEntry", () => {
     expect(summary).toBeNull();
   });
 
-  it("shows input content toggle when input_content is present", () => {
-    const decisionWithInput: ThemeDecision = {
-      ...mockDecision,
-      input_content: "議事録の内容がここに入る",
-    };
-    render(<TimelineEntry decision={decisionWithInput} />);
-    expect(screen.getByText("Input内容を表示")).toBeDefined();
-  });
-
-  it("expands input content on click", async () => {
+  it("expands input content on click inside body", async () => {
     const user = userEvent.setup();
     const decisionWithInput: ThemeDecision = {
       ...mockDecision,
       input_content: "議事録の内容がここに入る",
     };
     render(<TimelineEntry decision={decisionWithInput} />);
+    // First expand body
+    await user.click(screen.getByText("詳細を見る"));
+    // Then expand input content
     await user.click(screen.getByText("Input内容を表示"));
     expect(screen.getByText("議事録の内容がここに入る")).toBeDefined();
   });

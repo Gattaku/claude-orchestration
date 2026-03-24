@@ -8,3 +8,4 @@
 | TH-002 | Supabase統合（v1） | delivery | awaiting-review |
 | TH-003 | 議論ログ・議事録のSupabase保存とUI表示 | delivery | awaiting-review |
 | TH-005 | リアルタイム進捗Push基盤 | delivery | awaiting-review |
+| TH-006 | テーマ詳細ページUX改善（折りたたみ+戻るボタン） | delivery | awaiting-review |

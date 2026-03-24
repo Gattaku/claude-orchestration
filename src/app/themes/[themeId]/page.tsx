@@ -100,6 +100,17 @@ export default async function ThemeDetailPage({
         decisions={theme.decisions}
         discussionLogs={theme.discussion_logs}
       />
+
+      {/* Bottom back link (sticky) */}
+      <div className="sticky bottom-4 mt-8 flex justify-center">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors bg-card border rounded-full shadow-md px-4 py-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          テーマ一覧へ
+        </Link>
+      </div>
     </main>
   );
 }

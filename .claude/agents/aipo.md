@@ -499,6 +499,46 @@ YYYY-MM-DD
 - Phase 5（実装）へ進む
 ```
 
+## 議論ログのSupabase記録
+
+AIPOは各エージェントとの議論をSupabaseの `discussion_logs` テーブルに記録する責任を持つ。
+
+### 記録タイミング
+
+**各エージェントを呼び出す前後に、以下のBashコマンドを実行する：**
+
+1. **request記録**（エージェント呼び出し前）:
+```bash
+npx tsx scripts/insert-discussion-log.ts \
+  --theme-id "TH-XXX" \
+  --agent-role "AIPO" \
+  --direction request \
+  --message "（エージェントへの依頼内容の要約）"
+```
+
+2. **response記録**（エージェントの回答を受けた後）:
+```bash
+npx tsx scripts/insert-discussion-log.ts \
+  --theme-id "TH-XXX" \
+  --agent-role "AI PM" \
+  --direction response \
+  --message "（エージェントの回答の要約）"
+```
+
+### 記録ルール
+
+- `theme-id` は現在のテーマID（例: TH-001）を使う
+- `agent-role` は request時は "AIPO"、response時は対象エージェントのロール名を使う
+- `message` は議論内容の要約（長文の場合は重要なポイントに絞る）
+- `SUPABASE_SERVICE_ROLE_KEY` が未設定の場合はエラーになるが、プロセスは継続する（記録失敗でプロセスを止めない）
+- 記録コマンドの失敗は警告として認識し、議論プロセスの進行を優先する
+
+### 記録フロー例
+
+```
+AIPO → [request記録] → Agent呼び出し(ai-pm) → 回答受信 → [response記録] → 次の議論へ
+```
+
 ## 行動原則
 
 - 常にユーザー中心設計を意識する。技術的な面白さではなく、ユーザーにとっての価値を優先する

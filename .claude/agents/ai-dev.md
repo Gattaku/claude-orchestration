@@ -106,6 +106,21 @@ model: opus
 - [ ] 本番で動作確認済み
 ```
 
+## 議論ログの記録（フォールバック）
+
+AIPOが議論ログの記録を担当するが、AI Devも自身のresponseを記録するフォールバック責任を持つ。
+タスク完了時に、以下のコマンドで自身の回答を記録する：
+
+```bash
+npx tsx scripts/insert-discussion-log.ts \
+  --theme-id "TH-XXX" \
+  --agent-role "AI Dev" \
+  --direction response \
+  --message "（自身の回答の要約）"
+```
+
+**注意**: 記録コマンドの失敗でタスクを中断しないこと。記録は補助的なもので、本来の実装タスクが最優先。
+
 ## 行動原則
 
 - TDDを厳格に守る。テストなしにコードを書かない

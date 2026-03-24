@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ThemeDecision } from "@/lib/data/types";
+import { validateDiscussionLogInput } from "@/lib/data/themes";
+import type { InsertDiscussionLogInput } from "@/lib/data/themes";
 
 // Mock the Supabase server client
 const mockFrom = vi.fn();
@@ -238,5 +240,77 @@ describe("themes facade (Supabase)", () => {
     expect(themes).toHaveLength(1);
     expect(themes[0].theme_id).toBe("TH-002");
     expect(themes[0].current_status).toBe("awaiting-review");
+  });
+});
+
+describe("validateDiscussionLogInput", () => {
+  const validInput: InsertDiscussionLogInput = {
+    theme_id: "TH-001",
+    agent_role: "AIPO",
+    direction: "request",
+    message: "テスト用メッセージ",
+  };
+
+  it("returns null for valid input", () => {
+    expect(validateDiscussionLogInput(validInput)).toBeNull();
+  });
+
+  it("returns null for valid input with decision_id", () => {
+    expect(
+      validateDiscussionLogInput({
+        ...validInput,
+        decision_id: "some-uuid",
+      }),
+    ).toBeNull();
+  });
+
+  it("returns error for empty theme_id", () => {
+    const result = validateDiscussionLogInput({ ...validInput, theme_id: "" });
+    expect(result).toContain("theme_id");
+  });
+
+  it("returns error for invalid theme_id format", () => {
+    const result = validateDiscussionLogInput({
+      ...validInput,
+      theme_id: "INVALID",
+    });
+    expect(result).toContain("TH-NNN");
+  });
+
+  it("returns error for invalid agent_role", () => {
+    const result = validateDiscussionLogInput({
+      ...validInput,
+      agent_role: "INVALID" as InsertDiscussionLogInput["agent_role"],
+    });
+    expect(result).toContain("agent_role");
+  });
+
+  it("accepts all valid agent_roles", () => {
+    for (const role of ["AIPO", "AI PM", "AI PD", "AI Dev"] as const) {
+      expect(
+        validateDiscussionLogInput({ ...validInput, agent_role: role }),
+      ).toBeNull();
+    }
+  });
+
+  it("returns error for invalid direction", () => {
+    const result = validateDiscussionLogInput({
+      ...validInput,
+      direction: "invalid" as InsertDiscussionLogInput["direction"],
+    });
+    expect(result).toContain("direction");
+  });
+
+  it("accepts both valid directions", () => {
+    for (const dir of ["request", "response"] as const) {
+      expect(
+        validateDiscussionLogInput({ ...validInput, direction: dir }),
+      ).toBeNull();
+    }
+  });
+
+  it("returns error for empty message", () => {
+    const result = validateDiscussionLogInput({ ...validInput, message: "" });
+    expect(result).toContain("message");
   });
 });

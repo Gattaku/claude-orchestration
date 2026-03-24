@@ -111,6 +111,16 @@ export function TimelineEntry({ decision }: TimelineEntryProps) {
                   )}
                 </div>
               )}
+
+              {/* Bottom close button */}
+              <button
+                type="button"
+                onClick={() => setBodyExpanded(!bodyExpanded)}
+                className="mt-3 flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ChevronDown className="h-3 w-3" />
+                閉じる
+              </button>
             </>
           )}
         </div>

@@ -57,8 +57,8 @@ describe("TimelineEntry", () => {
     const bodyEl = container.querySelector("[data-slot='timeline-body']");
     expect(bodyEl).not.toBeNull();
     expect(bodyEl?.innerHTML).toContain("<p>テスト本文</p>");
-    // Button text should change to "閉じる"
-    expect(screen.getByText("閉じる")).toBeDefined();
+    // Both top and bottom close buttons should be present
+    expect(screen.getAllByText("閉じる").length).toBeGreaterThanOrEqual(1);
   });
 
   it("collapses body_html on second click", async () => {
@@ -67,8 +67,8 @@ describe("TimelineEntry", () => {
     // Expand
     await user.click(screen.getByText("詳細を見る"));
     expect(container.querySelector("[data-slot='timeline-body']")).not.toBeNull();
-    // Collapse
-    await user.click(screen.getByText("閉じる"));
+    // Collapse (click the top close button)
+    await user.click(screen.getAllByText("閉じる")[0]);
     expect(container.querySelector("[data-slot='timeline-body']")).toBeNull();
     // Button text should revert
     expect(screen.getByText("詳細を見る")).toBeDefined();
@@ -149,5 +149,30 @@ describe("TimelineEntry", () => {
       "[data-slot='input-content']",
     );
     expect(inputSection).toBeNull();
+  });
+
+  it("shows a bottom close button when body is expanded", async () => {
+    const user = userEvent.setup();
+    render(<TimelineEntry decision={mockDecision} />);
+    await user.click(screen.getByText("詳細を見る"));
+    // Both top and bottom close buttons should be present
+    const closeButtons = screen.getAllByText("閉じる");
+    expect(closeButtons.length).toBe(2);
+  });
+
+  it("collapses body when bottom close button is clicked", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<TimelineEntry decision={mockDecision} />);
+    await user.click(screen.getByText("詳細を見る"));
+    const closeButtons = screen.getAllByText("閉じる");
+    // Click the bottom (second) close button
+    await user.click(closeButtons[1]);
+    expect(container.querySelector("[data-slot='timeline-body']")).toBeNull();
+    expect(screen.getByText("詳細を見る")).toBeDefined();
+  });
+
+  it("does not show bottom close button when body is collapsed", () => {
+    render(<TimelineEntry decision={mockDecision} />);
+    expect(screen.queryByText("閉じる")).toBeNull();
   });
 });

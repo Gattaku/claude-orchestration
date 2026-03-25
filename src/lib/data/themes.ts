@@ -15,6 +15,7 @@ function toDateString(isoString: string): string {
  */
 function toThemeDecision(row: Record<string, unknown>): ThemeDecision {
   return {
+    id: row.id as string,
     theme_id: row.theme_id as string,
     title: row.title as string,
     phase: row.phase as ThemeDecision["phase"],

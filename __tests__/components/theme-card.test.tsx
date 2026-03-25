@@ -11,6 +11,7 @@ function makeTheme(overrides: Partial<Theme> = {}): Theme {
     current_status: "in-progress",
     decisions: [
       {
+        id: "test-id-1",
         theme_id: "T-001",
         title: "AI Dev Dashboard",
         phase: "technical-design",

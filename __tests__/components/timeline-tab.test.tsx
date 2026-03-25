@@ -6,6 +6,7 @@ import type { ThemeDecision, DiscussionLog } from "@/lib/data/types";
 
 const mockDecisions: ThemeDecision[] = [
   {
+    id: "test-tab-1",
     theme_id: "TH-001",
     title: "最新の議事録",
     phase: "value-definition",
@@ -21,6 +22,7 @@ const mockDecisions: ThemeDecision[] = [
     decisions_summary: "案Aを採用。理由はコストが低いため。",
   },
   {
+    id: "test-tab-2",
     theme_id: "TH-001",
     title: "古い議事録",
     phase: "insight-extraction",

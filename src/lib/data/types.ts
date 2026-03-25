@@ -14,6 +14,7 @@ export type Status =
   | "on-hold";
 
 export interface ThemeDecision {
+  id: string;
   theme_id: string;
   title: string;
   phase: Phase;

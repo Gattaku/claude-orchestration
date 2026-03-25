@@ -6,6 +6,7 @@ function makeDecision(
   overrides: Partial<ThemeDecision> = {},
 ): ThemeDecision {
   return {
+    id: `test-phase-${overrides.phase || "insight-extraction"}`,
     theme_id: "TH-001",
     title: "Test",
     phase: "insight-extraction",

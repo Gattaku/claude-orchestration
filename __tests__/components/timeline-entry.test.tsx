@@ -5,6 +5,7 @@ import { TimelineEntry } from "@/components/timeline-entry";
 import type { ThemeDecision } from "@/lib/data/types";
 
 const mockDecision: ThemeDecision = {
+  id: "test-decision-1",
   theme_id: "TH-001",
   title: "テスト議事録",
   phase: "insight-extraction",
@@ -77,7 +78,7 @@ describe("TimelineEntry", () => {
   it("does not show body toggle button when body_html is absent", () => {
     const decisionNoBody: ThemeDecision = {
       ...mockDecision,
-      body_html: null,
+      body_html: "",
     };
     render(<TimelineEntry decision={decisionNoBody} />);
     expect(screen.queryByText("詳細を見る")).toBeNull();

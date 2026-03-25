@@ -99,6 +99,7 @@ export default async function ThemeDetailPage({
       <TimelineTab
         decisions={theme.decisions}
         discussionLogs={theme.discussion_logs}
+        isAuthenticated={!!user}
       />
 
       {/* Bottom back link (sticky) */}

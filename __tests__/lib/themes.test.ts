@@ -27,6 +27,7 @@ describe("themes facade (Supabase)", () => {
   const mockDecisionRows: (Omit<ThemeDecision, "created_at" | "updated_at"> &
     { created_at: string; updated_at: string })[] = [
     {
+      id: "uuid-1",
       theme_id: "TH-001",
       title: "Theme 1",
       phase: "insight-extraction",
@@ -42,6 +43,7 @@ describe("themes facade (Supabase)", () => {
       decisions_summary: null,
     },
     {
+      id: "uuid-2",
       theme_id: "TH-001",
       title: "Theme 1",
       phase: "value-definition",
@@ -57,6 +59,7 @@ describe("themes facade (Supabase)", () => {
       decisions_summary: "Decided to go with option A",
     },
     {
+      id: "uuid-3",
       theme_id: "TH-002",
       title: "Theme 2",
       phase: "insight-extraction",

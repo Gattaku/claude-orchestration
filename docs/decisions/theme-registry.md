@@ -12,4 +12,4 @@
 | TH-007 | 議論ログ自動Push（PostToolUse hook） | implementation | in-progress |
 | TH-008 | 詳細展開パネルの閉じるボタンUX改善 | delivery | awaiting-review |
 | TH-009 | Phase個別承認UI | delivery | awaiting-review |
-| TH-011 | 展開コンテンツの閉じるUX改善 | triage | in-progress |
+| TH-011 | 展開コンテンツの閉じるUX改善 | delivery | awaiting-review |

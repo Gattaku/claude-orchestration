@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/status-badge";
 import { DecisionApproveButton } from "@/components/decision-approve-button";
 import { PHASE_DISPLAY_NAMES } from "@/lib/data/constants";
 import type { ThemeDecision } from "@/lib/data/types";
 import { formatShortDate } from "@/lib/utils/date";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, X } from "lucide-react";
 
 interface TimelineEntryProps {
   decision: ThemeDecision;
@@ -17,6 +17,7 @@ interface TimelineEntryProps {
 export function TimelineEntry({ decision, isAuthenticated = false }: TimelineEntryProps) {
   const [bodyExpanded, setBodyExpanded] = useState(false);
   const [inputExpanded, setInputExpanded] = useState(false);
+  const articleRef = useRef<HTMLElement>(null);
 
   const hasBodyHtml =
     decision.body_html && decision.body_html.trim() !== "";
@@ -25,8 +26,17 @@ export function TimelineEntry({ decision, isAuthenticated = false }: TimelineEnt
   const hasDecisionsSummary =
     decision.decisions_summary && decision.decisions_summary.trim() !== "";
 
+  const handleClose = useCallback(() => {
+    setBodyExpanded(false);
+    // setTimeout ensures scrollIntoView fires after the DOM update from state change
+    setTimeout(() => {
+      articleRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 0);
+  }, []);
+
   return (
     <article
+      ref={articleRef}
       data-slot="timeline-entry"
       className="rounded-lg border bg-card p-4 shadow-sm"
     >
@@ -73,7 +83,7 @@ export function TimelineEntry({ decision, isAuthenticated = false }: TimelineEnt
         <div className="mb-3">
           <button
             type="button"
-            onClick={() => setBodyExpanded(!bodyExpanded)}
+            onClick={() => bodyExpanded ? handleClose() : setBodyExpanded(true)}
             className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             {bodyExpanded ? (
@@ -84,46 +94,65 @@ export function TimelineEntry({ decision, isAuthenticated = false }: TimelineEnt
             {bodyExpanded ? "閉じる" : "詳細を見る"}
           </button>
           {bodyExpanded && (
-            <>
+            <div className="relative mt-2">
+              {/* Scrollable expanded content area */}
               <div
-                data-slot="timeline-body"
-                className="mt-2 prose prose-sm max-w-none text-sm text-foreground/90"
-                dangerouslySetInnerHTML={{ __html: decision.body_html }}
-              />
-
-              {/* Input Content (collapsible, inside body) */}
-              {hasInputContent && (
-                <div data-slot="input-content" className="mt-3">
+                data-slot="expanded-content"
+                className="max-h-[60vh] overflow-y-auto overscroll-contain"
+              >
+                {/* Sticky close bar */}
+                <div
+                  data-slot="close-bar"
+                  className="sticky top-0 z-10 flex items-center justify-between bg-card/95 backdrop-blur-sm border-b px-2 py-1.5"
+                >
+                  <span className="text-xs text-muted-foreground">展開中</span>
                   <button
                     type="button"
-                    onClick={() => setInputExpanded(!inputExpanded)}
+                    onClick={handleClose}
                     className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    {inputExpanded ? (
-                      <ChevronDown className="h-3 w-3" />
-                    ) : (
-                      <ChevronRight className="h-3 w-3" />
-                    )}
-                    Input内容を表示
+                    閉じる
+                    <ChevronDown className="h-3 w-3" />
                   </button>
-                  {inputExpanded && (
-                    <div className="mt-2 rounded-md border bg-muted/30 px-3 py-2 text-sm text-foreground/80 whitespace-pre-wrap">
-                      {decision.input_content}
-                    </div>
-                  )}
                 </div>
-              )}
 
-              {/* Bottom close button */}
-              <button
-                type="button"
-                onClick={() => setBodyExpanded(!bodyExpanded)}
-                className="mt-3 flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <ChevronDown className="h-3 w-3" />
-                閉じる
-              </button>
-            </>
+                {/* Body content */}
+                <div
+                  data-slot="timeline-body"
+                  className="prose prose-sm max-w-none text-sm text-foreground/90 px-2 py-2"
+                  dangerouslySetInnerHTML={{ __html: decision.body_html }}
+                />
+
+                {/* Input Content (collapsible, inside body) */}
+                {hasInputContent && (
+                  <div data-slot="input-content" className="px-2 pb-2">
+                    <button
+                      type="button"
+                      onClick={() => setInputExpanded(!inputExpanded)}
+                      className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {inputExpanded ? (
+                        <ChevronDown className="h-3 w-3" />
+                      ) : (
+                        <ChevronRight className="h-3 w-3" />
+                      )}
+                      Input内容を表示
+                    </button>
+                    {inputExpanded && (
+                      <div className="mt-2 rounded-md border bg-muted/30 px-3 py-2 text-sm text-foreground/80 whitespace-pre-wrap">
+                        {decision.input_content}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Fade gradient overlay */}
+              <div
+                data-slot="fade-gradient"
+                className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-card to-transparent pointer-events-none rounded-b-lg"
+              />
+            </div>
           )}
         </div>
       )}

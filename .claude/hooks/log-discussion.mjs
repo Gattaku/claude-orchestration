@@ -92,6 +92,37 @@ function readStdin() {
 }
 
 /**
+ * themes テーブルに該当 themeId が存在しなければ INSERT する。
+ * 既に存在する場合は何もしない（ON CONFLICT DO NOTHING 相当）。
+ *
+ * Prefer: resolution=ignore-duplicates を使い、
+ * 既存テーマの title や他カラムを上書きしない。
+ */
+async function ensureThemeExists(supabaseUrl, serviceRoleKey, themeId) {
+  const url = `${supabaseUrl}/rest/v1/themes`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`,
+      Prefer: "resolution=ignore-duplicates,return=minimal",
+    },
+    body: JSON.stringify({
+      theme_id: themeId,
+      title: `Theme ${themeId}`,
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(
+      `Supabase themes upsert failed (${response.status}): ${body}`
+    );
+  }
+}
+
+/**
  * Supabase REST API に直接 INSERT（supabase-js に依存しない）
  */
 async function insertLog(supabaseUrl, serviceRoleKey, record) {
@@ -166,7 +197,18 @@ async function main() {
     process.exit(0);
   }
 
-  // 5. request ログ（AIPO -> エージェント）
+  // 5. themes テーブルにテーマが存在することを保証（FK制約違反を防ぐ）
+  try {
+    await ensureThemeExists(supabaseUrl, serviceRoleKey, themeId);
+    console.error(`[log-discussion] ensureThemeExists OK: ${themeId}`);
+  } catch (err) {
+    console.error(
+      `[log-discussion] ensureThemeExists failed (best-effort): ${err.message}`
+    );
+    // ベストエフォート: 失敗してもログINSERTは試みる
+  }
+
+  // 6. request ログ（AIPO -> エージェント）
   const requestMessage = truncate(toolInput.prompt || "");
   try {
     await insertLog(supabaseUrl, serviceRoleKey, {
@@ -180,7 +222,7 @@ async function main() {
     console.error(`[log-discussion] Failed to log request: ${err.message}`);
   }
 
-  // 6. response ログ（エージェント -> AIPO）
+  // 7. response ログ（エージェント -> AIPO）
   // tool_response はオブジェクトの場合も文字列の場合もある
   let responseText = "";
   const toolResponse = hookData.tool_response;

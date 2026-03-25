@@ -12,3 +12,4 @@
 | TH-007 | 議論ログ自動Push（PostToolUse hook） | implementation | in-progress |
 | TH-008 | 詳細展開パネルの閉じるボタンUX改善 | delivery | awaiting-review |
 | TH-009 | Phase個別承認UI | delivery | awaiting-review |
+| TH-010 | 議論ログSupabase Push不具合修正 | delivery | awaiting-review |

@@ -118,7 +118,13 @@ docs/decisions/{theme_id}-{phase略称}-{YYYYMMDD}.md に詳細を記録
 Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
 ```
 
-4. コミット後、人間オーナーに完了を報告する
+4. **Supabase同期**: コミット後、以下のコマンドでMarkdownの内容をSupabaseに同期する：
+   ```bash
+   npx tsx -r tsconfig-paths/register scripts/migrate-md-to-supabase.ts
+   ```
+   - **特にPhase 0では必須**。`themes` テーブルにテーマが存在しないと、後続のAgent呼び出し時にPostToolUse hookが `discussion_logs` へのINSERTに失敗する（FK制約違反）
+   - Phase 5・Phase 6でも実行すること（決定記録をアプリに反映するため）
+5. コミット後、人間オーナーに完了を報告する
 
 ### コミットタイミングの原則
 
@@ -212,6 +218,8 @@ AIPOは Phase 0（トリアージ）でInput種別と規模を判定し、最適
 4. **Theme IDの付与**: `docs/decisions/theme-registry.md` を確認し、次の連番でTheme IDを付与する
 
 5. **トリアージ結果を記録し、コミットする**
+
+6. **【必須】Supabase同期**: コミット直後に `npx tsx -r tsconfig-paths/register scripts/migrate-md-to-supabase.ts` を実行し、テーマをSupabaseに登録する。この同期を行わないと、後続のAgent呼び出しでPostToolUse hookの議論ログINSERTがFK制約違反で失敗する。
 
 #### Express Path の場合のトリアージ記録
 

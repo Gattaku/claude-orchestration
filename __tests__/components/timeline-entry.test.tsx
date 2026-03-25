@@ -1,8 +1,13 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeAll } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { TimelineEntry } from "@/components/timeline-entry";
 import type { ThemeDecision } from "@/lib/data/types";
+
+// jsdom does not implement scrollIntoView
+beforeAll(() => {
+  Element.prototype.scrollIntoView = vi.fn();
+});
 
 const mockDecision: ThemeDecision = {
   id: "test-decision-1",
@@ -58,7 +63,7 @@ describe("TimelineEntry", () => {
     const bodyEl = container.querySelector("[data-slot='timeline-body']");
     expect(bodyEl).not.toBeNull();
     expect(bodyEl?.innerHTML).toContain("<p>テスト本文</p>");
-    // Both top and bottom close buttons should be present
+    // Sticky close bar should have a close button
     expect(screen.getAllByText("閉じる").length).toBeGreaterThanOrEqual(1);
   });
 
@@ -68,7 +73,7 @@ describe("TimelineEntry", () => {
     // Expand
     await user.click(screen.getByText("詳細を見る"));
     expect(container.querySelector("[data-slot='timeline-body']")).not.toBeNull();
-    // Collapse (click the top close button)
+    // Collapse (click the close button in sticky bar)
     await user.click(screen.getAllByText("閉じる")[0]);
     expect(container.querySelector("[data-slot='timeline-body']")).toBeNull();
     // Button text should revert
@@ -152,28 +157,80 @@ describe("TimelineEntry", () => {
     expect(inputSection).toBeNull();
   });
 
-  it("shows a bottom close button when body is expanded", async () => {
-    const user = userEvent.setup();
-    render(<TimelineEntry decision={mockDecision} />);
-    await user.click(screen.getByText("詳細を見る"));
-    // Both top and bottom close buttons should be present
-    const closeButtons = screen.getAllByText("閉じる");
-    expect(closeButtons.length).toBe(2);
-  });
+  // --- New UX tests ---
 
-  it("collapses body when bottom close button is clicked", async () => {
+  it("shows a sticky close bar when body is expanded (no bottom close button)", async () => {
     const user = userEvent.setup();
     const { container } = render(<TimelineEntry decision={mockDecision} />);
     await user.click(screen.getByText("詳細を見る"));
+    // Sticky close bar should exist
+    const closeBar = container.querySelector("[data-slot='close-bar']");
+    expect(closeBar).not.toBeNull();
+    // Only one close button (in sticky bar), plus the top toggle which now says "閉じる"
     const closeButtons = screen.getAllByText("閉じる");
-    // Click the bottom (second) close button
-    await user.click(closeButtons[1]);
+    expect(closeButtons.length).toBe(2); // top toggle + sticky bar
+  });
+
+  it("wraps expanded content in a scrollable container with max-height", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<TimelineEntry decision={mockDecision} />);
+    await user.click(screen.getByText("詳細を見る"));
+    const expandedContent = container.querySelector("[data-slot='expanded-content']");
+    expect(expandedContent).not.toBeNull();
+    expect(expandedContent?.className).toContain("max-h-[60vh]");
+    expect(expandedContent?.className).toContain("overflow-y-auto");
+    expect(expandedContent?.className).toContain("overscroll-contain");
+  });
+
+  it("shows a fade gradient overlay at the bottom of expanded content", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<TimelineEntry decision={mockDecision} />);
+    await user.click(screen.getByText("詳細を見る"));
+    const fadeOverlay = container.querySelector("[data-slot='fade-gradient']");
+    expect(fadeOverlay).not.toBeNull();
+    expect(fadeOverlay?.className).toContain("pointer-events-none");
+  });
+
+  it("collapses body when sticky close bar button is clicked", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<TimelineEntry decision={mockDecision} />);
+    await user.click(screen.getByText("詳細を見る"));
+    // Click the close button inside the sticky bar
+    const closeBar = container.querySelector("[data-slot='close-bar']");
+    const closeButton = closeBar?.querySelector("button");
+    expect(closeButton).not.toBeNull();
+    await user.click(closeButton!);
     expect(container.querySelector("[data-slot='timeline-body']")).toBeNull();
     expect(screen.getByText("詳細を見る")).toBeDefined();
   });
 
-  it("does not show bottom close button when body is collapsed", () => {
-    render(<TimelineEntry decision={mockDecision} />);
-    expect(screen.queryByText("閉じる")).toBeNull();
+  it("does not show close bar or expanded content when body is collapsed", () => {
+    const { container } = render(<TimelineEntry decision={mockDecision} />);
+    expect(container.querySelector("[data-slot='close-bar']")).toBeNull();
+    expect(container.querySelector("[data-slot='expanded-content']")).toBeNull();
+    expect(container.querySelector("[data-slot='fade-gradient']")).toBeNull();
+  });
+
+  it("calls scrollIntoView when closing expanded content", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const scrollIntoViewMock = vi.fn();
+    const { container } = render(<TimelineEntry decision={mockDecision} />);
+    // Mock scrollIntoView on the article element
+    const article = container.querySelector("[data-slot='timeline-entry']");
+    article!.scrollIntoView = scrollIntoViewMock;
+    // Expand
+    await user.click(screen.getByText("詳細を見る"));
+    // Close via sticky bar
+    const closeBar = container.querySelector("[data-slot='close-bar']");
+    const closeButton = closeBar?.querySelector("button");
+    await user.click(closeButton!);
+    // Flush the setTimeout(0)
+    vi.runAllTimers();
+    expect(scrollIntoViewMock).toHaveBeenCalledWith({
+      behavior: "smooth",
+      block: "nearest",
+    });
+    vi.useRealTimers();
   });
 });

@@ -8,9 +8,10 @@ import type { ThemeDecision, DiscussionLog } from "@/lib/data/types";
 interface TimelineTabProps {
   decisions: ThemeDecision[];
   discussionLogs?: DiscussionLog[];
+  isAuthenticated?: boolean;
 }
 
-export function TimelineTab({ decisions, discussionLogs = [] }: TimelineTabProps) {
+export function TimelineTab({ decisions, discussionLogs = [], isAuthenticated = false }: TimelineTabProps) {
   const sortedDecisions = [...decisions].sort(
     (a, b) => b.updated_at.localeCompare(a.updated_at),
   );
@@ -31,7 +32,7 @@ export function TimelineTab({ decisions, discussionLogs = [] }: TimelineTabProps
       <TabsContent value="timeline" className="mt-4">
         <div className="flex flex-col gap-4">
           {sortedDecisions.map((decision, index) => (
-            <TimelineEntry key={`${decision.source}-${index}`} decision={decision} />
+            <TimelineEntry key={`${decision.source}-${index}`} decision={decision} isAuthenticated={isAuthenticated} />
           ))}
           {sortedDecisions.length === 0 && (
             <p className="text-sm text-muted-foreground py-8 text-center">

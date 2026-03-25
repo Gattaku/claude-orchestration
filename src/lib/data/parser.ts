@@ -142,6 +142,7 @@ export async function parseMarkdownFiles(
     const bodyHtml = await markdownToHtml(parsed.content);
 
     const decision: ThemeDecision = {
+      id: `md-${parsed.data.theme_id}-${parsed.data.phase}`,
       theme_id: parsed.data.theme_id as string,
       title: parsed.data.title as string,
       phase: parsed.data.phase as Phase,

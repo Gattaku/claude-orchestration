@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/status-badge";
+import { DecisionApproveButton } from "@/components/decision-approve-button";
 import { PHASE_DISPLAY_NAMES } from "@/lib/data/constants";
 import type { ThemeDecision } from "@/lib/data/types";
 import { formatShortDate } from "@/lib/utils/date";
@@ -10,9 +11,10 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 
 interface TimelineEntryProps {
   decision: ThemeDecision;
+  isAuthenticated?: boolean;
 }
 
-export function TimelineEntry({ decision }: TimelineEntryProps) {
+export function TimelineEntry({ decision, isAuthenticated = false }: TimelineEntryProps) {
   const [bodyExpanded, setBodyExpanded] = useState(false);
   const [inputExpanded, setInputExpanded] = useState(false);
 
@@ -123,6 +125,13 @@ export function TimelineEntry({ decision }: TimelineEntryProps) {
               </button>
             </>
           )}
+        </div>
+      )}
+
+      {/* Approve button for awaiting-review decisions */}
+      {isAuthenticated && decision.status === "awaiting-review" && (
+        <div className="mt-3 pt-2 border-t">
+          <DecisionApproveButton decisionId={decision.id} />
         </div>
       )}
 

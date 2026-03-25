@@ -26,6 +26,7 @@ describe("Type definitions", () => {
 
   it("ThemeDecision interface has required fields", () => {
     const decision: ThemeDecision = {
+      id: "test-type-1",
       theme_id: "T-001",
       title: "Test Theme",
       phase: "insight-extraction",

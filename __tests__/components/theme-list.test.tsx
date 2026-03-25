@@ -17,6 +17,7 @@ function makeThemeOrError(
       current_status: "in-progress",
       decisions: [
         {
+          id: `test-id-${themeId}`,
           theme_id: themeId,
           title,
           phase: "technical-design",

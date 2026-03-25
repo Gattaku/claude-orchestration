@@ -62,6 +62,64 @@ export async function approveTheme(themeId: string): Promise<ReviewResult> {
   return { success: true }
 }
 
+export async function approveDecision(decisionId: string): Promise<ReviewResult> {
+  const supabase = await createServerSupabaseClient()
+
+  // Authentication check
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    return { success: false, error: '認証が必要です。ログインしてください。' }
+  }
+
+  // Validate decisionId
+  if (!decisionId || typeof decisionId !== 'string') {
+    return { success: false, error: '決定記録IDが無効です。' }
+  }
+
+  // Check decision exists and is awaiting-review
+  const { data: decision, error: decisionError } = await supabase
+    .from('theme_decisions')
+    .select('id, theme_id, status')
+    .eq('id', decisionId)
+    .single()
+
+  if (decisionError || !decision) {
+    return { success: false, error: '決定記録が見つかりません。' }
+  }
+
+  if (decision.status !== 'awaiting-review') {
+    return { success: false, error: 'この決定記録はawaiting-reviewステータスではありません。' }
+  }
+
+  // Insert review record with decision_id
+  const { error: insertError } = await supabase.from('theme_reviews').insert({
+    theme_id: decision.theme_id,
+    decision_id: decisionId,
+    action: 'approved',
+    reviewer_email: user.email!,
+    comment: null,
+  })
+
+  if (insertError) {
+    return { success: false, error: 'レビューの記録に失敗しました。' }
+  }
+
+  // Update decision status to completed
+  const { error: updateError } = await supabase
+    .from('theme_decisions')
+    .update({ status: 'completed', awaiting_review: '' })
+    .eq('id', decisionId)
+
+  if (updateError) {
+    return { success: false, error: '決定記録のステータス更新に失敗しました。' }
+  }
+
+  revalidatePath('/')
+  revalidatePath(`/themes/${decision.theme_id}`)
+
+  return { success: true }
+}
+
 export async function rejectTheme(themeId: string, comment?: string): Promise<ReviewResult> {
   const supabase = await createServerSupabaseClient()
 

@@ -274,8 +274,8 @@ try {
     // stderrの内容を分析して成功/失敗を判定
     if (result.stderr.includes("Logged request") && result.stderr.includes("Logged response")) {
       ok("Hook実行成功: request + response ログ記録確認");
-    } else if (result.stderr.includes("env vars not found")) {
-      fail("Hook実行: 環境変数が見つからない", "process.envに設定されているか確認");
+    } else if (result.stderr.includes("env vars MISSING")) {
+      fail("Hook実行: 環境変数が見つからない", "process.envまたは.env.localに設定されているか確認");
     } else if (result.stderr.includes("Done successfully")) {
       ok("Hook実行成功 (exit 0)");
     } else {
@@ -283,6 +283,20 @@ try {
     }
   } else {
     fail(`Hook実行失敗 (exit code: ${result.code})`, result.stderr.trim());
+  }
+
+  // デバッグログファイルの確認
+  const debugLogPath = resolve(PROJECT_ROOT, ".claude", "hooks", "hook-debug.log");
+  try {
+    const debugContent = readFileSync(debugLogPath, "utf-8");
+    const lines = debugContent.trim().split("\n");
+    ok(`hook-debug.log にログ出力あり (${lines.length} lines)`);
+    console.log("     最新のログ:");
+    for (const line of lines.slice(-5)) {
+      console.log(`       ${line}`);
+    }
+  } catch {
+    fail("hook-debug.log が作成されていない", "hookがファイルログを書き込めない可能性");
   }
 } catch (err) {
   fail("Hook起動エラー", err.message);

@@ -8,7 +8,7 @@
  * 失敗しても exit 0 で返し、会話フローを止めない。
  */
 
-import { readFileSync } from "node:fs";
+import { readFileSync, appendFileSync, mkdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -29,12 +29,31 @@ const AGENT_ROLE_MAP = {
 /** メッセージの最大文字数（超過分は切り詰め） */
 const MAX_MESSAGE_LENGTH = 3000;
 
+/** デバッグログファイルパス */
+const DEBUG_LOG_PATH = resolve(PROJECT_ROOT, ".claude", "hooks", "hook-debug.log");
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 /**
+ * デバッグログをファイルに追記する。
+ * stderrだけだと消えるため、ファイルにも残す。
+ */
+function debugLog(message) {
+  const ts = new Date().toISOString();
+  const line = `[${ts}] ${message}\n`;
+  console.error(`[log-discussion] ${message}`);
+  try {
+    appendFileSync(DEBUG_LOG_PATH, line);
+  } catch {
+    // ログ書き込み失敗は無視
+  }
+}
+
+/**
  * .env.local を読み込んで key=value を返す（dotenv に依存しない）
+ * クォートで囲まれた値も正しく処理する。
  */
 function loadEnvFile() {
   const envVars = {};
@@ -47,7 +66,14 @@ function loadEnvFile() {
         const eqIndex = trimmed.indexOf("=");
         if (eqIndex === -1) continue;
         const key = trimmed.slice(0, eqIndex).trim();
-        const value = trimmed.slice(eqIndex + 1).trim();
+        let value = trimmed.slice(eqIndex + 1).trim();
+        // クォート除去: "value" or 'value' -> value
+        if (
+          (value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))
+        ) {
+          value = value.slice(1, -1);
+        }
         if (!envVars[key]) {
           envVars[key] = value;
         }
@@ -57,6 +83,15 @@ function loadEnvFile() {
     }
   }
   return envVars;
+}
+
+/**
+ * 環境変数を取得する。優先順位:
+ * 1. process.env（シェル環境変数・CI/CD）
+ * 2. .env.local / .env ファイル
+ */
+function getEnvVar(key, fileEnv) {
+  return process.env[key] || fileEnv[key] || "";
 }
 
 /**
@@ -148,10 +183,54 @@ async function insertLog(supabaseUrl, serviceRoleKey, record) {
 // Main
 // ---------------------------------------------------------------------------
 
+/**
+ * tool_response から応答テキストを抽出する。
+ * Claude Code のバージョンにより形式が異なる可能性があるため、
+ * 文字列、配列、オブジェクト（content配列含む）の全形式に対応する。
+ */
+function extractResponseText(toolResponse) {
+  if (!toolResponse) return "";
+  if (typeof toolResponse === "string") return toolResponse;
+
+  if (Array.isArray(toolResponse)) {
+    return toolResponse
+      .map((item) =>
+        typeof item === "string"
+          ? item
+          : item.text || item.output || JSON.stringify(item)
+      )
+      .join("\n");
+  }
+
+  if (typeof toolResponse === "object") {
+    if (Array.isArray(toolResponse.content)) {
+      return toolResponse.content
+        .map((item) =>
+          typeof item === "string"
+            ? item
+            : item.text || item.output || JSON.stringify(item)
+        )
+        .join("\n");
+    }
+    return (
+      toolResponse.output ||
+      toolResponse.content ||
+      toolResponse.text ||
+      toolResponse.result ||
+      JSON.stringify(toolResponse)
+    );
+  }
+
+  return String(toolResponse);
+}
+
 async function main() {
+  debugLog("Hook invoked");
+
   // 1. stdin を読む
   const raw = await readStdin();
   if (!raw) {
+    debugLog("No stdin data received");
     process.exit(0);
   }
 
@@ -159,57 +238,82 @@ async function main() {
   try {
     hookData = JSON.parse(raw);
   } catch {
-    console.error("[log-discussion] Failed to parse stdin JSON");
+    debugLog(`Failed to parse stdin JSON. Raw (first 500 chars): ${raw.slice(0, 500)}`);
     process.exit(0);
   }
+
+  // stdin の全フィールドをデバッグログに記録（問題診断用）
+  debugLog(
+    `stdin keys: ${Object.keys(hookData).join(", ")} | ` +
+      `tool_name=${hookData.tool_name || hookData.name || "(none)"}`
+  );
 
   // 2. Agent ツール以外は無視
-  if (hookData.tool_name !== "Agent") {
+  // tool_name は "Agent" だが、将来のClaude Codeバージョンで変更される可能性に備える
+  const toolName = hookData.tool_name || hookData.name || "";
+  if (toolName !== "Agent") {
+    debugLog(`Skipping non-Agent tool: ${toolName}`);
     process.exit(0);
   }
 
-  const toolInput = hookData.tool_input || {};
-  const subagentType = toolInput.subagent_type;
+  // 3. tool_input を取得（フィールド名の揺れに対応）
+  const toolInput = hookData.tool_input || hookData.input || hookData.tool_params || {};
+  const subagentType = toolInput.subagent_type || toolInput.subagentType || "";
+  const prompt = toolInput.prompt || toolInput.message || "";
+  const description = toolInput.description || "";
 
-  // AIPOから各AIエージェントへの呼び出しのみ対象
+  debugLog(
+    `Agent call: subagent_type=${subagentType}, ` +
+      `prompt_len=${prompt.length}, description=${description}`
+  );
+
+  // 4. agent_role を特定
   const agentRole = AGENT_ROLE_MAP[subagentType];
   if (!agentRole) {
-    // ai-pm, ai-pd, ai-dev 以外（general-purpose等）はスキップ
-    process.exit(0);
-  }
-
-  // 3. Theme ID を抽出
-  const themeId = extractThemeId(toolInput.prompt || "");
-  if (!themeId) {
-    console.error(
-      "[log-discussion] No TH-XXX found in prompt, skipping log insertion"
+    debugLog(
+      `subagent_type "${subagentType}" not in AGENT_ROLE_MAP ` +
+        `(expected: ${Object.keys(AGENT_ROLE_MAP).join(", ")}). ` +
+        `prompt preview: ${prompt.slice(0, 100)}`
     );
     process.exit(0);
   }
 
-  // 4. 環境変数を読み込む
-  const env = loadEnvFile();
-  const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
+  // 5. Theme ID を抽出
+  const themeId = extractThemeId(prompt);
+  if (!themeId) {
+    debugLog(`No TH-XXX found in prompt. Preview: ${prompt.slice(0, 200)}`);
+    process.exit(0);
+  }
+
+  debugLog(`Theme: ${themeId}, Role: ${agentRole}`);
+
+  // 6. 環境変数を読み込む（process.env → .env.local → .env の優先順で取得）
+  const fileEnv = loadEnvFile();
+  const supabaseUrl = getEnvVar("NEXT_PUBLIC_SUPABASE_URL", fileEnv);
+  const serviceRoleKey = getEnvVar("SUPABASE_SERVICE_ROLE_KEY", fileEnv);
 
   if (!supabaseUrl || !serviceRoleKey) {
-    console.error("[log-discussion] Supabase env vars not found, skipping");
+    debugLog(
+      `Supabase env vars MISSING. ` +
+        `URL=${supabaseUrl ? "set" : "MISSING"}, KEY=${serviceRoleKey ? "set" : "MISSING"}. ` +
+        `Checked: process.env, .env.local, .env. ` +
+        `PROJECT_ROOT=${PROJECT_ROOT}`
+    );
     process.exit(0);
   }
 
-  // 5. themes テーブルにテーマが存在することを保証（FK制約違反を防ぐ）
+  debugLog(`Supabase URL: ${supabaseUrl.slice(0, 40)}...`);
+
+  // 7. themes テーブルにテーマが存在することを保証（FK制約違反を防ぐ）
   try {
     await ensureThemeExists(supabaseUrl, serviceRoleKey, themeId);
-    console.error(`[log-discussion] ensureThemeExists OK: ${themeId}`);
+    debugLog(`ensureThemeExists OK: ${themeId}`);
   } catch (err) {
-    console.error(
-      `[log-discussion] ensureThemeExists failed (best-effort): ${err.message}`
-    );
-    // ベストエフォート: 失敗してもログINSERTは試みる
+    debugLog(`ensureThemeExists failed (best-effort): ${err.message}`);
   }
 
-  // 6. request ログ（AIPO -> エージェント）
-  const requestMessage = truncate(toolInput.prompt || "");
+  // 8. request ログ（AIPO -> エージェント）
+  const requestMessage = truncate(prompt);
   try {
     await insertLog(supabaseUrl, serviceRoleKey, {
       theme_id: themeId,
@@ -217,25 +321,16 @@ async function main() {
       direction: "request",
       message: `[To ${agentRole}] ${requestMessage}`,
     });
-    console.error(`[log-discussion] Logged request: AIPO -> ${agentRole} (${themeId})`);
+    debugLog(`Logged request: AIPO -> ${agentRole} (${themeId})`);
   } catch (err) {
-    console.error(`[log-discussion] Failed to log request: ${err.message}`);
+    debugLog(`Failed to log request: ${err.message}`);
   }
 
-  // 7. response ログ（エージェント -> AIPO）
-  // tool_response はオブジェクトの場合も文字列の場合もある
-  let responseText = "";
-  const toolResponse = hookData.tool_response;
-  if (typeof toolResponse === "string") {
-    responseText = toolResponse;
-  } else if (toolResponse && typeof toolResponse === "object") {
-    // output フィールドがある場合はそれを使う
-    responseText =
-      toolResponse.output ||
-      toolResponse.content ||
-      toolResponse.text ||
-      JSON.stringify(toolResponse);
-  }
+  // 9. response ログ（エージェント -> AIPO）
+  const toolResponse = hookData.tool_response || hookData.response || hookData.output || "";
+  const responseText = extractResponseText(toolResponse);
+
+  debugLog(`Response text length: ${responseText.length}`);
 
   if (responseText) {
     const responseMessage = truncate(responseText);
@@ -246,18 +341,19 @@ async function main() {
         direction: "response",
         message: responseMessage,
       });
-      console.error(
-        `[log-discussion] Logged response: ${agentRole} -> AIPO (${themeId})`
-      );
+      debugLog(`Logged response: ${agentRole} -> AIPO (${themeId})`);
     } catch (err) {
-      console.error(`[log-discussion] Failed to log response: ${err.message}`);
+      debugLog(`Failed to log response: ${err.message}`);
     }
+  } else {
+    debugLog("No response text extracted from tool_response");
   }
 
+  debugLog("Done successfully");
   process.exit(0);
 }
 
 main().catch((err) => {
-  console.error(`[log-discussion] Unexpected error: ${err.message}`);
+  debugLog(`Unexpected error: ${err.message}\nStack: ${err.stack}`);
   process.exit(0); // 常に exit 0 で会話を止めない
 });

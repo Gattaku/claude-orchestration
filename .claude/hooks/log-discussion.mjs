@@ -35,6 +35,7 @@ const MAX_MESSAGE_LENGTH = 3000;
 
 /**
  * .env.local を読み込んで key=value を返す（dotenv に依存しない）
+ * クォートで囲まれた値も正しく処理する。
  */
 function loadEnvFile() {
   const envVars = {};
@@ -47,7 +48,14 @@ function loadEnvFile() {
         const eqIndex = trimmed.indexOf("=");
         if (eqIndex === -1) continue;
         const key = trimmed.slice(0, eqIndex).trim();
-        const value = trimmed.slice(eqIndex + 1).trim();
+        let value = trimmed.slice(eqIndex + 1).trim();
+        // クォート除去: "value" or 'value' -> value
+        if (
+          (value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))
+        ) {
+          value = value.slice(1, -1);
+        }
         if (!envVars[key]) {
           envVars[key] = value;
         }
@@ -57,6 +65,15 @@ function loadEnvFile() {
     }
   }
   return envVars;
+}
+
+/**
+ * 環境変数を取得する。優先順位:
+ * 1. process.env（シェル環境変数・CI/CD）
+ * 2. .env.local / .env ファイル
+ */
+function getEnvVar(key, fileEnv) {
+  return process.env[key] || fileEnv[key] || "";
 }
 
 /**
@@ -149,9 +166,12 @@ async function insertLog(supabaseUrl, serviceRoleKey, record) {
 // ---------------------------------------------------------------------------
 
 async function main() {
+  console.error("[log-discussion] Hook invoked");
+
   // 1. stdin を読む
   const raw = await readStdin();
   if (!raw) {
+    console.error("[log-discussion] No stdin data received");
     process.exit(0);
   }
 
@@ -187,15 +207,21 @@ async function main() {
     process.exit(0);
   }
 
-  // 4. 環境変数を読み込む
-  const env = loadEnvFile();
-  const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
+  // 4. 環境変数を読み込む（process.env → .env.local → .env の優先順で取得）
+  const fileEnv = loadEnvFile();
+  const supabaseUrl = getEnvVar("NEXT_PUBLIC_SUPABASE_URL", fileEnv);
+  const serviceRoleKey = getEnvVar("SUPABASE_SERVICE_ROLE_KEY", fileEnv);
 
   if (!supabaseUrl || !serviceRoleKey) {
-    console.error("[log-discussion] Supabase env vars not found, skipping");
+    console.error(
+      "[log-discussion] Supabase env vars not found. " +
+        `URL=${supabaseUrl ? "set" : "MISSING"}, KEY=${serviceRoleKey ? "set" : "MISSING"}. ` +
+        "Checked: process.env, .env.local, .env"
+    );
     process.exit(0);
   }
+
+  console.error(`[log-discussion] Supabase URL: ${supabaseUrl.slice(0, 30)}...`);
 
   // 5. themes テーブルにテーマが存在することを保証（FK制約違反を防ぐ）
   try {
@@ -223,18 +249,38 @@ async function main() {
   }
 
   // 7. response ログ（エージェント -> AIPO）
-  // tool_response はオブジェクトの場合も文字列の場合もある
+  // tool_response は文字列、オブジェクト、配列など複数の形式がありうる
   let responseText = "";
   const toolResponse = hookData.tool_response;
   if (typeof toolResponse === "string") {
     responseText = toolResponse;
+  } else if (Array.isArray(toolResponse)) {
+    // content配列形式: [{type: "text", text: "..."}, ...]
+    responseText = toolResponse
+      .map((item) =>
+        typeof item === "string"
+          ? item
+          : item.text || item.output || JSON.stringify(item)
+      )
+      .join("\n");
   } else if (toolResponse && typeof toolResponse === "object") {
-    // output フィールドがある場合はそれを使う
-    responseText =
-      toolResponse.output ||
-      toolResponse.content ||
-      toolResponse.text ||
-      JSON.stringify(toolResponse);
+    // content が配列の場合も処理
+    if (Array.isArray(toolResponse.content)) {
+      responseText = toolResponse.content
+        .map((item) =>
+          typeof item === "string"
+            ? item
+            : item.text || item.output || JSON.stringify(item)
+        )
+        .join("\n");
+    } else {
+      responseText =
+        toolResponse.output ||
+        toolResponse.content ||
+        toolResponse.text ||
+        toolResponse.result ||
+        JSON.stringify(toolResponse);
+    }
   }
 
   if (responseText) {
@@ -254,10 +300,12 @@ async function main() {
     }
   }
 
+  console.error("[log-discussion] Done successfully");
   process.exit(0);
 }
 
 main().catch((err) => {
   console.error(`[log-discussion] Unexpected error: ${err.message}`);
+  console.error(`[log-discussion] Stack: ${err.stack}`);
   process.exit(0); // 常に exit 0 で会話を止めない
 });
